@@ -25,6 +25,7 @@ import warnings
 import lang
 import ranking
 import types
+import time
 
 
 __all__ = ['GooglePlaces', 'GooglePlacesError', 'GooglePlacesAttributeError',
@@ -59,7 +60,13 @@ def _fetch_remote(service_url, params={}, use_http_post=False):
 def _fetch_remote_json(service_url, params={}, use_http_post=False):
     """Retrieves a JSON object from a URL."""
     request_url, response = _fetch_remote(service_url, params, use_http_post)
-    return (request_url, json.load(response))
+    result = json.load(response)['results']
+    while 'next_page_token' in response.keys():
+        params['pagetoken'] = response['next_page_token']
+        time.sleep(2) #google-places api reply with INVALID_REQUEST if the requests are send too quickly
+        request_url, response = _fetch_remote(service_url, params, use_http_post)
+        result.extend(json.load(response)['results'])
+    return (request_url, result)
 
 def _fetch_remote_file(service_url, params={}, use_http_post=False):
     """Retrieves a file from a URL.
